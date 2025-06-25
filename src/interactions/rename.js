@@ -1,55 +1,26 @@
-/**
- * @module rename
- */
-
 const {
-  ActionRowBuilder,
-  PermissionFlagsBits,
   ModalBuilder,
   TextInputBuilder,
   TextInputStyle,
+  ActionRowBuilder,
 } = require('discord.js');
 
 module.exports = {
   name: 'rename',
-
-  /**
-   * @async
-   * @function execute
-   * @param {Client} client
-   * @param {Interaction} interaction
-   */
   async execute(client, interaction) {
-    const locale = client.locale.get(client.config.language);
+    const modal = new ModalBuilder()
+      .setCustomId('renameModal')
+      .setTitle('تغيير اسم التذكرة');
 
-    if (interaction.isModalSubmit()) {
-      const newName = interaction.fields.getTextInputValue('name');
+    const nameInput = new TextInputBuilder()
+      .setCustomId('newName')
+      .setLabel('ادخل الاسم الجديد')
+      .setStyle(TextInputStyle.Short)
+      .setRequired(true);
 
-      if (!interaction.member.permissions.has(PermissionFlagsBits.ManageChannels)) {
-        interaction.reply({ content: locale.rename.missingPermissions, ephemeral: true });
-        return;
-      }
+    const row = new ActionRowBuilder().addComponents(nameInput);
+    modal.addComponents(row);
 
-      interaction.channel.setName(newName);
-
-      interaction.reply({ content: locale.rename.nameChanged, ephemeral: true });
-    } else {
-      const modal = new ModalBuilder()
-        .setCustomId('rename')
-        .setTitle(locale.rename.modalTitle)
-        .addComponents(
-          new ActionRowBuilder().addComponents(
-            new TextInputBuilder()
-              .setCustomId('name')
-              .setMaxLength(40)
-              .setMinLength(2)
-              .setLabel(locale.rename.modalLabel)
-              .setStyle(TextInputStyle.Short)
-              .setRequired(true)
-          )
-        );
-
-      await interaction.showModal(modal);
-    }
+    await interaction.showModal(modal);
   },
 };

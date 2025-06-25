@@ -1,107 +1,56 @@
 const {
   ActionRowBuilder,
-  ButtonBuilder,
-  AttachmentBuilder,
   ChannelType,
-  PermissionFlagsBits,
-  ButtonStyle,
+  ModalBuilder,
+  TextInputBuilder,
+  TextInputStyle,
 } = require('discord.js');
-const { CustomClient } = require('../utils');
 
 module.exports = {
   name: 'select',
 
-  /**
-   * @async
-   * @function execute
-   * @param {CustomClient} client
-   * @param {ButtonInteraction | AnySelectMenuInteraction} interaction
-   */
   async execute(client, interaction) {
-    const locale = client.locale.get(client.config.language);
+    const selectedValue = interaction.isAnySelectMenu()
+      ? interaction.values[0]
+      : interaction.customId.split('*')[1];
 
-    await interaction.deferReply({ ephemeral: true }).catch(() => {});
+    const { roleId, image, categoryID } = client.config.optionConfig[selectedValue];
+    const categoryId = categoryID || client.config.categoryID;
+    const ticketCategory = interaction.guild.channels.cache.get(categoryId);
 
-    const selectedValue = interaction.isAnySelectMenu() ? interaction.values[0] : interaction.customId.split('*')[1];
+    if (!ticketCategory || ticketCategory.type !== ChannelType.GuildCategory) return;
 
-    if (client.config.optionConfig[selectedValue]) {
-      const { roleId, image, categoryID } = client.config.optionConfig[selectedValue];
-
-      const categoryId = categoryID ? categoryID : client.config.categoryID;
-      const ticketCategory = interaction.guild.channels.cache.get(categoryId);
-
-      if (!ticketCategory || ticketCategory.type !== ChannelType.GuildCategory) {
-        return;
-      }
-
-      const hasTicket = await ticketCategory.children.cache.find((ch) => ch.topic == interaction.user.id);
-      if (hasTicket) {
-        interaction.editReply({ content: locale.select.alreadyCreated, ephemeral: true });
-        return;
-      }
-
-      const ID = (await client.db.get('tickets')) || 0;
-      const ticketChannel = await interaction.guild.channels.create({
-        name: `🎫・${ID + 1}`,
-        type: ChannelType.GuildText,
-        topic: interaction.user.id,
-        parent: ticketCategory.id,
-        permissionOverwrites: [
-          {
-            id: interaction.guild.id,
-            deny: [PermissionFlagsBits.ViewChannel, PermissionFlagsBits.SendMessages],
-          },
-          {
-            id: interaction.user.id,
-            allow: [PermissionFlagsBits.ViewChannel, PermissionFlagsBits.SendMessages],
-          },
-          {
-            id: roleId,
-            allow: [PermissionFlagsBits.ViewChannel, PermissionFlagsBits.SendMessages],
-          },
-          {
-            id: client.user.id,
-            allow: [PermissionFlagsBits.ViewChannel, PermissionFlagsBits.SendMessages],
-          },
-        ],
+    const hasTicket = interaction.guild.channels.cache.find(
+      (ch) => ch.parentId === categoryId && ch.topic === interaction.user.id
+    );
+    if (hasTicket) {
+      return interaction.reply({
+        content: '❌ لديك بالفعل تذكرة مفتوحة!',
+        ephemeral: true,
       });
-
-      await client.db.set('tickets', ID + 1);
-      await client.db.set(`ticket-${interaction.guild.id}-${interaction.user.id}`, {
-        id: ID + 1,
-        channel: ticketChannel.id,
-        selectedOption: selectedValue,
-        claimed: null,
-      });
-
-      const userMention = `<@${interaction.user.id}>`;
-      const roleMention = `<@&${roleId}>`;
-      const attach3 = new AttachmentBuilder(image, { name: 'image.png' });
-
-      const ticketMessage = await ticketChannel.send({
-        content: locale.select.helloUser.replace('[user]', userMention).replace('[role]', roleMention),
-        files: [attach3],
-      });
-
-      const optionsButton = new ButtonBuilder()
-        .setCustomId('options')
-        .setLabel(locale.buttons.options || 'Options')
-        .setStyle(ButtonStyle.Secondary)
-        .setEmoji('⚙️');
-
-      const claimButton = new ButtonBuilder()
-        .setCustomId('claim')
-        .setLabel(locale.buttons.claim || 'Claim')
-        .setStyle(ButtonStyle.Secondary)
-        .setEmoji('🔒');
-
-      const ticketRow = new ActionRowBuilder().addComponents(optionsButton, claimButton);
-
-      await ticketMessage.edit({ components: [ticketRow] });
-
-      await interaction
-        .editReply({ content: locale.select.created.replace('[channel]', ticketChannel), ephemeral: true })
-        .catch(() => {});
     }
+
+    // 🧠 تخزين مؤقت في قاعدة البيانات
+    await client.db.set(`temp-${interaction.user.id}`, {
+      selectedValue,
+      guildId: interaction.guild.id,
+    });
+
+    // 📝 عرض مودال السبب
+    const modal = new ModalBuilder()
+      .setCustomId('reasonModal')
+      .setTitle('سبب فتح التذكرة');
+
+    const reasonInput = new TextInputBuilder()
+      .setCustomId('ticketReason')
+      .setLabel('يرجى كتابة سبب فتح التذكرة')
+      .setStyle(TextInputStyle.Paragraph)
+      .setRequired(true)
+      .setPlaceholder('مثال: أريد شراء رتبة... أو عندي شكوى عن شخص...');
+
+    const row = new ActionRowBuilder().addComponents(reasonInput);
+    modal.addComponents(row);
+
+    await interaction.showModal(modal);
   },
 };

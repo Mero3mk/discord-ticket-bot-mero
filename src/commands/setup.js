@@ -38,14 +38,19 @@ module.exports = {
         console.log('Background image URL:', client.config.BACKGROUND);
       }
 
-      if (client.config.ticketOptions && client.config.ticketOptions.length > 0) {
+      // ✅ عرض فقط خيارات الدعم الفني والشكوى
+      const filteredOptions = client.config.ticketOptions.filter(option =>
+        option.value === 'الدعم-الفني' || option.value === 'الشكوى'
+      );
+
+      if (filteredOptions.length > 0) {
         if (client.config.sectionType === 'list') {
           const selectMenu = new ActionRowBuilder().addComponents(
             new StringSelectMenuBuilder()
               .setCustomId('select')
               .setPlaceholder(locale.setup.SelectPlaceholder)
               .addOptions(
-                client.config.ticketOptions.map(option => ({
+                filteredOptions.map(option => ({
                   label: option.label,
                   value: option.value,
                   ...(option.emoji ? { emoji: option.emoji } : {})
@@ -55,7 +60,7 @@ module.exports = {
 
           await interaction.channel.send({ components: [selectMenu] });
         } else {
-          const buttons = client.config.ticketOptions.map(option => {
+          const buttons = filteredOptions.map(option => {
             const btn = new ButtonBuilder()
               .setCustomId(`select*${option.value}`)
               .setLabel(option.label)

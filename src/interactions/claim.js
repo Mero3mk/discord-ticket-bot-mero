@@ -1,7 +1,3 @@
-/**
- * @module claim
- */
-
 const { PermissionFlagsBits } = require('discord.js');
 const { CustomClient } = require('../utils');
 
@@ -9,60 +5,51 @@ module.exports = {
   name: 'claim',
 
   /**
-   * @async
-   * @function execute
    * @param {CustomClient} client
-   * @param {ButtonInteraction} interaction
+   * @param {import('discord.js').ButtonInteraction} interaction
    */
   async execute(client, interaction) {
-    const locale = client.locale.get(client.config.language);
-
     try {
       await interaction.deferReply({ ephemeral: true });
 
-      const creatorId = interaction.channel.topic;
-      if (!creatorId) {
-        await interaction.editReply({ content: locale.options.ticketDataNotFound || 'Ticket data not found.', ephemeral: true });
-        return;
+      const channel = interaction.channel;
+      const userId = channel.topic;
+
+      if (!userId) {
+        return interaction.editReply({ content: '❌ لا يمكن العثور على معلومات التذكرة (topic).', ephemeral: true });
       }
 
-      const ticketKey = `ticket-${interaction.guild.id}-${creatorId}`;
+      const ticketKey = `ticket-${interaction.guild.id}-${userId}`;
       const ticketData = await client.db.get(ticketKey);
+
       if (!ticketData) {
-        await interaction.editReply({ content: locale.options.ticketDataNotFound || 'Ticket data not found.', ephemeral: true });
-        return;
+        return interaction.editReply({ content: '❌ لا يمكن العثور على معلومات التذكرة.', ephemeral: true });
       }
 
       if (ticketData.claimed) {
         const claimer = `<@${ticketData.claimed}>`;
-        await interaction.editReply({ content: locale.claim.claimedBy.replace('[user]', claimer) || `Ticket already claimed by ${claimer}.`, ephemeral: true });
-        return;
+        return interaction.editReply({ content: `📌 تم استلام هذه التذكرة بالفعل من قبل ${claimer}.`, ephemeral: true });
       }
 
-      const selectedOption = ticketData.selectedOption;
-      const { roleId } = client.config.optionConfig[selectedOption];
-      if (!roleId) {
-        await interaction.editReply({ content: 'Admin role not configured for this ticket type.', ephemeral: true });
-        return;
+      const isSupport = interaction.member.roles.cache.has(client.config.supportRoleId);
+      const isOwner = interaction.user.id === client.config.ownerId;
+
+      if (!isSupport && !isOwner) {
+        return interaction.editReply({ content: '❌ ليس لديك صلاحية لاستلام التذكرة.', ephemeral: true });
       }
 
-      const isAdmin = interaction.member.roles.cache.has(roleId);
-      if (!isAdmin) {
-        await interaction.editReply({ content: locale.claim.missingPermission || "You don't have permission to claim this ticket.", ephemeral: true });
-        return;
+      if (interaction.user.id === userId) {
+        return interaction.editReply({ content: '❌ لا يمكنك استلام التذكرة التي أنشأتها.', ephemeral: true });
       }
 
-      if (interaction.user.id === creatorId) {
-        await interaction.editReply({ content: locale.claim.userClaimError || "You cannot claim the ticket you opened.", ephemeral: true });
-        return;
-      }
-
+      // تحديث قاعدة البيانات
       await client.db.set(ticketKey, {
         ...ticketData,
         claimed: interaction.user.id,
       });
 
-      await interaction.channel.permissionOverwrites.edit(roleId, {
+      // تعديل الصلاحيات
+      await interaction.channel.permissionOverwrites.edit(client.config.supportRoleId, {
         ViewChannel: false,
         SendMessages: false,
       });
@@ -73,12 +60,15 @@ module.exports = {
         ReadMessageHistory: true,
       });
 
-      await interaction.channel.send({ content: locale.claim.claimedBy.replace('[user]', interaction.user.toString()) || `<@${interaction.user.id}> has claimed this ticket.`, ephemeral: false });
+      await interaction.channel.send({
+        content: `📌 تم استلام هذه التذكرة من قبل ${interaction.user}.`,
+      });
 
-      await interaction.editReply({ content: locale.claim.claimedSuccessfully || "You have successfully claimed this ticket. ✅", ephemeral: true });
+      await interaction.editReply({ content: '✅ تم استلام التذكرة بنجاح.', ephemeral: true });
+
     } catch (error) {
-      console.error(`Error in 'claim' interaction:`, error);
-      await interaction.editReply({ content: 'An unexpected error occurred while claiming the ticket. Please try again later.', ephemeral: true });
+      console.error('❌ خطأ في أمر claim:', error);
+      await interaction.editReply({ content: '❌ حدث خطأ أثناء محاولة استلام التذكرة.', ephemeral: true });
     }
   },
 };

@@ -1,23 +1,65 @@
 {
-  "TOKEN": "TOKEN",
-  "guildID": "ID",
+  "TOKEN": "توكن_البوت_هنا",
+  "guildID": "1386832974464417863",
   "dashboard": {
-    "username": "wick",
-    "password": "wick123",
+    "username": "mero",
+    "password": "mero123",
     "port": "3000"
   },
-  "BACKGROUND": "",
+  "BACKGROUND": "https://media.discordapp.net/attachments/1385340506199949382/1385347013016817920/image.png",
   "LINE": "",
-  "categoryID": "",
-  "logChannel": "",
-  "feedbackLogChannel": "",
+  "categoryID": "1386841100337021039",
+  "logChannel": "1386840993621606520",
+  "feedbackLogChannel": "1386841011178705148",
   "language": "ar",
-  "sectionType": "list",
-  "optionConfig": {},
-  "ticketOptions": [],
+  "sectionType": "buttons",
+  "optionConfig": {
+    "الدعم-الفني": {
+      "roleId": "1386841906172137603",
+      "image": "https://media.discordapp.net/attachments/1385340506199949382/1385347013016817920/image.png",
+      "color": "#00ff00"
+    },
+    "الشكوى": {
+      "roleId": "1386841906172137603",
+      "image": "https://media.discordapp.net/attachments/1385340506199949382/1385347013016817920/image.png",
+      "color": "#ff0000"
+    },
+    "طلب-حكم": {
+      "roleId": "1387216547113734245",
+      "image": "https://i.imgur.com/FZ2xNNv.png"
+    },
+    "طلب-مدرب": {
+      "roleId": "1387217002795634748",
+      "image": "https://i.imgur.com/n4tXr2g.png"
+    }
+  },
+  "ticketOptions": [
+    {
+      "label": "الدعم الفني",
+      "value": "الدعم-الفني",
+      "emoji": "📜"
+    },
+    {
+      "label": "الشكوى",
+      "value": "الشكوى",
+      "emoji": "🛠️"
+    },
+    {
+      "label": "طلب حكم",
+      "value": "طلب-حكم",
+      "emoji": "🧑‍⚖️"
+    },
+    {
+      "label": "طلب مدرب",
+      "value": "طلب-مدرب",
+      "emoji": "🎯"
+    }
+  ],
   "colors": {
     "Support": "Primary",
     "Report": "Primary",
     "Apply Staff": "Primary"
-  }
+  },
+  "ownerId": "959199146357719040",
+  "supportRoleId": "1386841906172137603"
 }

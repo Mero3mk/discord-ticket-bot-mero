@@ -1,38 +1,42 @@
-const { ActionRowBuilder, EmbedBuilder, ButtonBuilder, ButtonStyle } = require('discord.js');
-const { CustomClient } = require('../utils');
+const { PermissionFlagsBits, EmbedBuilder } = require('discord.js');
 
 module.exports = {
   name: 'close',
 
   /**
    * @param {CustomClient} client
-   * @param {Interaction} interaction
+   * @param {ButtonInteraction} interaction
    */
   async execute(client, interaction) {
     const locale = client.locale.get(client.config.language);
 
-    await interaction.deferReply();
+    // 🔒 تحقق من الصلاحيات
+    const allowedRoles = [
+      '1386841906172137603', // ID تيم الدعم
+      '959199146357719040',  // ID الأونر
+    ];
 
-    const confirmEmbed = new EmbedBuilder()
-      .setColor('#05131f')
-      .setTitle('Confirmation')
-      .setDescription(locale.close.confirm);
+    const memberRoles = interaction.member.roles.cache;
+    const isAdmin = memberRoles.some(role => allowedRoles.includes(role.id));
 
-    const yesButton = new ButtonBuilder()
-      .setCustomId('confirm_yes')
-      .setLabel(locale.close.yes)
-      .setStyle(ButtonStyle.Secondary);
+    if (!isAdmin) {
+      return interaction.reply({
+        content: '❌ ليس لديك إذن لإغلاق التذكرة.',
+        ephemeral: true
+      });
+    }
 
-    const noButton = new ButtonBuilder()
-      .setCustomId('confirm_no')
-      .setLabel(locale.close.no)
-      .setStyle(ButtonStyle.Danger);
+    // ✅ اغلاق التذكرة مباشرة
+    await interaction.deferReply({ ephemeral: true });
 
-    const confirmRow = new ActionRowBuilder().addComponents(yesButton, noButton);
-
-    await interaction.editReply({
-      embeds: [confirmEmbed],
-      components: [confirmRow],
-    });
+    try {
+      await interaction.channel.delete();
+    } catch (error) {
+      console.error('حدث خطأ أثناء حذف التذكرة:', error);
+      await interaction.editReply({
+        content: '❌ حدث خطأ أثناء محاولة إغلاق التذكرة.',
+        ephemeral: true
+      });
+    }
   },
 };
