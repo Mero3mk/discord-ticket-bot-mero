@@ -9,6 +9,7 @@ const {
   SlashCommandBuilder,
   ButtonBuilder,
   ActionRowBuilder,
+  ButtonStyle,
 } = require('discord.js');
 const path = require('path');
 const Locale = require('../locale/en.json');
@@ -63,8 +64,16 @@ module.exports = {
           const buttons = filteredOptions.map(option => {
             const btn = new ButtonBuilder()
               .setCustomId(`select*${option.value}`)
-              .setLabel(option.label)
-              .setStyle('Secondary');
+              .setLabel(option.label);
+
+            // تعيين اللون حسب نوع التذكرة
+            if (option.value === 'الدعم-الفني') {
+              btn.setStyle(ButtonStyle.Primary); // أزرق
+            } else if (option.value === 'الشكوى') {
+              btn.setStyle(ButtonStyle.Danger); // أحمر
+            } else {
+              btn.setStyle(ButtonStyle.Secondary); // افتراضي
+            }
 
             if (option.emoji) {
               btn.setEmoji(option.emoji);
